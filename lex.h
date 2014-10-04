@@ -1,10 +1,10 @@
 // lex.h                                          Stan Eisenstat (09/22/14)
 //
 // Header file for command-line lexer.
-
+/*
 #ifndef LEX_INCLUDED
 #define LEX_INCLUDED            // lex.h has been #include-d
-
+*/
 //  1) a maximal contiguous sequence of nonblank printing characters other
 //       than the metacharacters <, >, ;, &, |, (, and ).
 //
@@ -56,3 +56,5 @@ token *lex (const char *line);
 // Free list of tokens LIST (implemented in mainLex.c)
 void freeList (token *list);
 
+
+void printAllTokens (struct token *headToken);

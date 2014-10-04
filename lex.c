@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include "./lex.h"
+/*
 #define SIMPLE          10      // Maximal contiguous sequence of nonblanks
 
 #define REDIR_IN        20      // <
@@ -26,6 +29,7 @@ typedef struct token {          // Struct for each token in linked list
     struct token *next;           //   Pointer to next token in linked list
 } token;
 
+*/
 
 int letterIsRepeatableNonSimple (char letter) {
     if (letter == '>') {
@@ -96,7 +100,6 @@ int getTokenLength (const char *line, int possition) {
     int i = possition;
     for (i = possition; i < lineLength; i ++) {
         if (letterIsNonSimple(line[i])) {
-             printf("Start\n");
             if (i == possition){
                 if (letterIsRepeatableNonSimple(line[i])) {
                     
@@ -111,12 +114,22 @@ int getTokenLength (const char *line, int possition) {
             break;
         }
         
-        if (line[i] == ' ') {
+        if (!isgraph(line[i])) {
             break;
         }
     }
     return i - possition;
 }
+
+
+char *removeLineBreak (char *line) {
+    int lineLength = strlen(line);
+    if (line[lineLength - 1] == '\n') {
+        line[lineLength - 1] = 0;
+    }
+    return line;
+}
+
 
 int getNextToken (const char *line, int possition, struct token **newToken) {
     int length = getTokenLength(line, possition);
@@ -126,18 +139,20 @@ int getNextToken (const char *line, int possition, struct token **newToken) {
     for (i = 0; i < length; i ++) {
         tokenText[i] = line[i + possition];
     }
-    (*newToken) -> text = tokenText;
+    (*newToken) -> text = removeLineBreak(tokenText);
     (*newToken) -> type = getType(tokenText);
     return possition + length - 1;
 }
 
+
 token *lex (const char *line) {
+    
     int lineLength = strlen(line);
     struct token *nextToken;
     struct token *lastToken  = NULL;
     struct token *headPointer  = NULL;
     for (int i = 0; i < lineLength; i++) {
-        if (line[i] != ' ') {
+        if (isgraph(line[i])) {
             nextToken = malloc (sizeof(struct token));
             i = getNextToken (line, i, &nextToken);
             nextToken -> next = NULL;
@@ -153,15 +168,17 @@ token *lex (const char *line) {
     return headPointer;
 }
 
-void printAllTokens (struct token *headToken) {
-    struct token *currentToken = headToken;
-    while (currentToken -> next) {
-        printf("Token Text : %s   Code : %d\n",currentToken -> text, currentToken -> type);
-        currentToken = currentToken -> next;
-    }
-    printf("Token Text : %s   Code : %d\n",currentToken -> text, currentToken -> type);
-}
+//void printAllTokens (struct token *headToken) {
+//    struct token *currentToken = headToken;
+//    while (currentToken -> next) {
+//        printf("%s ",currentToken -> text);
+//        currentToken = currentToken -> next;
+//    }
+//    printf("%s",currentToken -> text);
+//}
 
+
+/*
 void freeList (token *list) {
     struct token *currentToken = list;
     while (currentToken -> next) {
@@ -174,3 +191,11 @@ void freeList (token *list) {
 }
 
 
+
+int main(int argc, char **argv){
+    struct token *testToken;
+    testToken = lex (" this is a sentance");
+    printAllTokens (testToken);
+    return 1;
+}
+ */
