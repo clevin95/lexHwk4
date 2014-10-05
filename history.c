@@ -85,6 +85,24 @@ char *convertTokensToString (struct token *list) {
     return outputString;
 }
 
+char *convertAllButFirst (struct token *list) {
+    struct token *current = list;
+    char *outputString = malloc(1);
+    outputString[0] = '\0';
+    while (current -> next) {
+        if (outputString[0]) {
+            char *lineSpace = malloc(2);
+            lineSpace[0] = ' ';
+            lineSpace[1] = '\0';
+            outputString = combine(outputString, lineSpace);
+        }
+        char *tokenText = stringCopy(current -> next -> text);
+        outputString = combine(outputString, tokenText);
+        current = current -> next;
+    }
+    return outputString;
+}
+
 char *getTokenForPos (struct token *list, int pos) {
     int count = 0;
     struct token *current = list;
@@ -142,6 +160,10 @@ char *getTokenSequenceForList (struct token *list,
                 return tokenReturned;
             }
         }
+    }
+    else if (oldLine[iPointer[0]] == '*'){
+        iPointer[0] ++;
+        return convertAllButFirst (list);
     }
     iPointer[0] --;
     return convertTokensToString(list);
@@ -336,13 +358,16 @@ void printAllTokens (struct token *headToken) {
 
 void hDump (int n) {
     int startPos = currentPossition - n;
-        while (startPos < currentPossition) {
-            printf("%6d  ", startPos);
-            struct token *tokenToPrint = tokenHistory[startPos];
-            printAllTokens (tokenToPrint);
-            printf("\n");
-            startPos ++;
-        }
+    if (startPos < 0) {
+        startPos =0;
+    }
+    while (startPos < currentPossition) {
+        printf("%6d  ", startPos);
+        struct token *tokenToPrint = tokenHistory[startPos];
+        printAllTokens (tokenToPrint);
+        printf("\n");
+        startPos ++;
+    }
 }
 
 
