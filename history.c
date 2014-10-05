@@ -121,19 +121,21 @@ char *getTokenSequenceForList (struct token *list,
                                int *iPointer,
                                const char *oldLine,
                                int *replacementStatus) {
-    if (oldLine[0] == '^'){
+    
+    
+    if (oldLine[iPointer[0]] == '^'){
         iPointer[0] ++;
         return getTokenForPos (list, 1);
     }
-    else if (oldLine[0] == '$'){
+    else if (oldLine[iPointer[0]] == '$'){
         iPointer[0] ++;
         return getLastToken (list);
     }
-    else if (oldLine[0] == ':'){
-        if (strlen(&oldLine[0]) > 1) {
-            if (oldLine[1] >= 48 && oldLine[1] <= 57) {
+    else if (oldLine[iPointer[0]] == ':'){
+        if (strlen(&oldLine[iPointer[0]]) > 1) {
+            if (oldLine[iPointer[0] + 1] >= 48 && oldLine[iPointer[0] + 1] <= 57) {
                 char *endptr;
-                int tokenNum = strtol (&oldLine[1], &endptr, 10);
+                int tokenNum = strtol (&oldLine[iPointer[0] + 1], &endptr, 10);
                 char *tokenReturned = getTokenForPos (list, tokenNum);
                 int numLength = getIntLength (tokenNum);
                 iPointer[0] += numLength + 1;
@@ -162,7 +164,7 @@ char *getString (const char *oldLine) {
 int searchTokenList (char *string, struct token *list) {
     struct token *current = list;
     while (current) {
-        if (!strcmp(current -> text, string)) {
+        if (strstr(current -> text, string)) {
             return 1;
         }
         current = current -> next;
@@ -181,60 +183,73 @@ struct token *findStringInHistory (char *string) {
 
 
 char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus) {
-    int lineLength = strlen(oldLine);
+    int lineLength = strlen(&oldLine[iPointer[0]]);
     char *endptr;
     struct token *listToSearch;
     int listNum;
-    if (oldLine[0] == '!') {
+    if (oldLine[iPointer[0]] == '!') {
         iPointer[0] += 1;
         if (currentPossition > 0) {
             return getTokenSequenceForList (tokenHistory[currentPossition - 1],
-                                            iPointer, &oldLine[iPointer[0]],
+                                            iPointer, oldLine,
                                             replacementStatus);
         }
         else {
             return NULL;
         }
+        replacementStatus[0] = 1;
     }
-    else if (oldLine[0] == '-'){
+    else if (oldLine[iPointer[0]] == '-'){
         if (lineLength > 1) {
-            if (oldLine[1] >= 48 && oldLine[1] <= 57) {
-                listNum = strtol (&oldLine[1], &endptr, 10);
-                listToSearch = tokenHistory[currentPossition - listNum];
-                int numLength = getIntLength (listNum);
-                iPointer[0] += numLength + 2;
-                return getTokenSequenceForList (listToSearch,
-                                                iPointer,
-                                                &oldLine[iPointer[0]],
-                                                replacementStatus);
+            if (oldLine[iPointer[0] + 1] >= 48 && oldLine[iPointer[0] + 1] <= 57) {
+                listNum = strtol (&oldLine[iPointer[0] + 1], &endptr, 10);
+                if (listNum <= currentPossition) {
+                    listToSearch = tokenHistory[currentPossition - listNum];
+                    int numLength = getIntLength (listNum);
+                    iPointer[0] += numLength + 1;
+                    return getTokenSequenceForList (listToSearch,
+                                                    iPointer,
+                                                    oldLine,
+                                                    replacementStatus);
+                }
             }
         }
+        replacementStatus[0] = 1;
     }
-    else if (oldLine[0] >= 48 && oldLine[0] <= 57) {
-        listNum = strtol (&oldLine[0], &endptr, 10);
+    else if (oldLine[iPointer[0]] >= 48 && oldLine[iPointer[0]] <= 57) {
+        listNum = strtol (&oldLine[iPointer[0]], &endptr, 10);
         if (listNum > 0 && listNum <= currentPossition) {
             listToSearch = tokenHistory[listNum - 1];
             int numLength = getIntLength (listNum);
-            iPointer[0] += numLength + 1;
+            iPointer[0] += numLength;
             return getTokenSequenceForList (listToSearch,
                                             iPointer,
-                                            &oldLine[iPointer[0]],
+                                            oldLine,
                                             replacementStatus);
         }
+        replacementStatus[0] = 1;
     }
-    else if (oldLine[0] == '?') {
+    else if (oldLine[iPointer[0]] == '?') {
         if (lineLength > 1) {
-            char *searchString = getString (&oldLine[1]);
+            char *searchString = getString (&oldLine[iPointer[0] + 1]);
             listToSearch = findStringInHistory (searchString);
             
             iPointer[0] += strlen(searchString) + 1;
+            printf("searchString : %s\n", searchString);
+            if (lineLength > iPointer[0]){
+                iPointer[0] ++;
+            }
+            
             return getTokenSequenceForList (listToSearch,
                                             iPointer,
-                                            &oldLine[iPointer[0]],
+                                            oldLine,
                                             replacementStatus);
         }
+        replacementStatus[0] = 1;
     }
-    replacementStatus[0] = -1;
+    if (replacementStatus[0] != 1) {
+        replacementStatus[0] = -1;
+    }
     return NULL;
 }
 
@@ -250,7 +265,7 @@ char *hExpand (const char *oldLine, int *status) {
             iPointer[0] = i;
             replacementStatus[0] = 0;
             iPointer[0] ++;
-            char *replacement = getReplacement (iPointer, &oldLine[i + 1], replacementStatus);
+            char *replacement = getReplacement (iPointer, oldLine, replacementStatus);
             if (replacementStatus[0] == -1) {
                 char *letterToAdd = malloc(2);
                 letterToAdd[0] = oldLine[i];
@@ -268,7 +283,6 @@ char *hExpand (const char *oldLine, int *status) {
                 expanded = combine (expanded, replacement);
                 i = iPointer[0];
             }
-            
         }
         else {
             char *letterToAdd = malloc(2);
@@ -299,7 +313,7 @@ void hRemember (int ncmd, token *list) {
 }
 
 void hClear (void) {
-
+    
 }
 
 // hDump(n) writes the most recent N remembered commands by increasing number

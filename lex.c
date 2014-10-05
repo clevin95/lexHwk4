@@ -3,33 +3,6 @@
 #include <string.h>
 #include <ctype.h>
 #include "./lex.h"
-/*
-#define SIMPLE          10      // Maximal contiguous sequence of nonblanks
-
-#define REDIR_IN        20      // <
-#define REDIR_HERE      21      // <<
-
-#define REDIR_PIPE      30      // |
-#define REDIR_OUT       31      // >
-#define REDIR_APP       32      // >>
-
-#define SEP_END         40      // ;
-#define SEP_BG          41      // &
-#define SEP_AND         42      // &&
-#define SEP_OR          43      // ||
-
-#define PAREN_LEFT      50      // (
-#define PAREN_RIGHT     51      // )
-
-#define METACHARS       "<>;&|()"       // Chars that start a non-SIMPLE
-
-typedef struct token {          // Struct for each token in linked list
-    char *text;                   //   String containing token
-    int type;                     //   Corresponding type
-    struct token *next;           //   Pointer to next token in linked list
-} token;
-
-*/
 
 int letterIsRepeatableNonSimple (char letter) {
     if (letter == '>') {
@@ -102,7 +75,6 @@ int getTokenLength (const char *line, int possition) {
         if (letterIsNonSimple(line[i])) {
             if (i == possition){
                 if (letterIsRepeatableNonSimple(line[i])) {
-                    
                     if (i + 1 < lineLength) {
                         if (line[i] == line[i + 1]){
                             i ++;
@@ -146,6 +118,9 @@ int getNextToken (const char *line, int possition, struct token **newToken) {
 
 
 token *lex (const char *line) {
+    if (!line) {
+        return NULL;
+    }
     
     int lineLength = strlen(line);
     struct token *nextToken;

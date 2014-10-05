@@ -31,33 +31,19 @@ int main (int argc, char *argv[])
             fputs (cmd, stdout);                //   Print expanded line
         else if (status < 0)
             fputs ("substitution failed\n", stderr);
-
         list = lex (cmd);                       // Lex line into tokens
         free (cmd);
-        
-        
-        
-        
-        if (!strcmp(list -> text,"history")) {
-            hDump(5);
-        }
-        
-        
+
         if (list == NULL)                       // Empty token list?
             continue;
-        
-        
-
         hRemember (ncmd, list);                 // Remember command
         
     
         if (status >= 0)                        // No substitution error?
             process (list);                     //   Process token list
         
-    
 
         freeList (list);                        // Free token list
-         
         
         ncmd++;                                 // Adjust prompt
         
