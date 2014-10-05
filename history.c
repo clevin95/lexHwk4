@@ -35,6 +35,8 @@
 //  //  0 if no substitutions were requested, and to -1 if some substitution failed.
 //
 //
+
+
 struct token *tokenHistory[323];
 int currentPossition = 0;
 
@@ -257,7 +259,6 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
             listToSearch = findStringInHistory (searchString);
             
             iPointer[0] += strlen(searchString) + 1;
-            printf("searchString : %s\n", searchString);
             if (lineLength > iPointer[0]){
                 iPointer[0] ++;
             }
@@ -334,8 +335,21 @@ void hRemember (int ncmd, token *list) {
     tokenHistory[ncmd - 1] = lex(tokenString);
 }
 
+void freeTokenList (struct token *list) {
+    token *p, *pnext;
+    for (p = list;  p;  p = pnext)  {
+        pnext = p->next;
+        free(p->text);
+        free(p);
+    }
+}
+
 void hClear (void) {
-    
+    for (int i = 0; i < currentPossition; i++) {
+        freeList(tokenHistory[i]);
+        tokenHistory[i] = NULL;
+    }
+    currentPossition = 0;
 }
 
 // hDump(n) writes the most recent N remembered commands by increasing number
@@ -362,7 +376,7 @@ void hDump (int n) {
         startPos =0;
     }
     while (startPos < currentPossition) {
-        printf("%6d  ", startPos);
+        printf("%6d  ", startPos + 1);
         struct token *tokenToPrint = tokenHistory[startPos];
         printAllTokens (tokenToPrint);
         printf("\n");
