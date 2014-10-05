@@ -37,10 +37,10 @@ int main (int argc, char *argv[])
         
         
         
-//        
-//        if (!strcmp(list -> text,"history")) {
-//            hDump(5);
-//        }
+        
+        if (!strcmp(list -> text,"history")) {
+            hDump(5);
+        }
         
         
         if (list == NULL)                       // Empty token list?
@@ -54,18 +54,15 @@ int main (int argc, char *argv[])
         if (status >= 0)                        // No substitution error?
             process (list);                     //   Process token list
         
-        /*
+    
 
         freeList (list);                        // Free token list
          
-         */
+        
         ncmd++;                                 // Adjust prompt
         
     }
-
-    //hClear();                                   // Free all storage
-
-    
+    hClear();                                   // Free all storage
     return 0;
 }
 
@@ -90,15 +87,15 @@ void process(struct token *list)
     else if (list && !strcmp (list->text, "hclear"))
         hClear();
 }
-//
-//
-//// Free list of tokens LIST
-//void freeList (token *list)
-//{
-//    token *p, *pnext;
-//    for (p = list;  p;  p = pnext)  {
-//        pnext = p->next;
-//        free(p->text);
-//        free(p);
-//    }
-//}
+
+
+// Free list of tokens LIST
+void freeList (token *list)
+{
+    token *p, *pnext;
+    for (p = list;  p;  p = pnext)  {
+        pnext = p->next;
+        free(p->text);
+        free(p);
+    }
+}

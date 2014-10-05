@@ -121,7 +121,6 @@ char *getTokenSequenceForList (struct token *list,
                                int *iPointer,
                                const char *oldLine,
                                int *replacementStatus) {
-    
     if (oldLine[0] == '^'){
         iPointer[0] ++;
         return getTokenForPos (list, 1);
@@ -144,6 +143,40 @@ char *getTokenSequenceForList (struct token *list,
     }
     iPointer[0] --;
     return convertTokensToString(list);
+}
+
+char *getString (const char *oldLine) {
+    int length = strlen(oldLine);
+    char *outputString = malloc(length);
+    int i;
+    for (i = 0; oldLine[i] != '?' ; i ++) {
+        if (!oldLine[i]) {
+            break;
+        }
+        outputString[i] = oldLine[i];
+    }
+    outputString[i] = '\0';
+    return outputString;
+}
+
+int searchTokenList (char *string, struct token *list) {
+    struct token *current = list;
+    while (current) {
+        if (!strcmp(current -> text, string)) {
+            return 1;
+        }
+        current = current -> next;
+    }
+    return 0;
+}
+
+struct token *findStringInHistory (char *string) {
+    for (int i = currentPossition; i >= 0; i --) {
+        if (searchTokenList(string, tokenHistory[i])){
+            return tokenHistory[i];
+        }
+    }
+    return NULL;
 }
 
 
@@ -189,6 +222,19 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
                                             replacementStatus);
         }
     }
+    else if (oldLine[0] == '?') {
+        if (lineLength > 1) {
+            char *searchString = getString (&oldLine[1]);
+            listToSearch = findStringInHistory (searchString);
+            
+            iPointer[0] += strlen(searchString) + 1;
+            return getTokenSequenceForList (listToSearch,
+                                            iPointer,
+                                            &oldLine[iPointer[0]],
+                                            replacementStatus);
+        }
+    }
+    replacementStatus[0] = -1;
     return NULL;
 }
 
@@ -199,22 +245,30 @@ char *hExpand (const char *oldLine, int *status) {
     int statusTracker = 0;
     int iPointer[1];
     for (int i = 0; i < stringLength - 1; i++) {
-        if (oldLine[i] == '!'){
+        if (oldLine[i] == '!' && i + 1 < stringLength - 1){
             int replacementStatus[1];
-            if (statusTracker != -1){
-                statusTracker = 1;
+            iPointer[0] = i;
+            replacementStatus[0] = 0;
+            iPointer[0] ++;
+            char *replacement = getReplacement (iPointer, &oldLine[i + 1], replacementStatus);
+            if (replacementStatus[0] == -1) {
+                char *letterToAdd = malloc(2);
+                letterToAdd[0] = oldLine[i];
+                letterToAdd[1] = '\0';
+                expanded = combine (expanded, letterToAdd);
             }
-            if (i + 1 < stringLength - 1){
-                iPointer[0] = i;
-                char *replacement = getReplacement (iPointer, &oldLine[i + 1], replacementStatus);
-                if (!replacement) {
-                    statusTracker = -1;
-                }
-                else {
-                    expanded = combine (expanded, replacement);
-                }
+            else if (!replacement) {
+                statusTracker = -1;
                 i = iPointer[0];
             }
+            else if (replacementStatus[0] != -1) {
+                if (statusTracker != -1){
+                    statusTracker = 1;
+                }
+                expanded = combine (expanded, replacement);
+                i = iPointer[0];
+            }
+            
         }
         else {
             char *letterToAdd = malloc(2);
@@ -237,12 +291,11 @@ char *hExpand (const char *oldLine, int *status) {
 //  // to the list of remembered commands as the NCMD-th command (where NCMD = 1 on
 //  // the first invocation and increases by one on every subsequent invocation).
 
-
-
-
 void hRemember (int ncmd, token *list) {
     currentPossition ++;
-    tokenHistory[ncmd - 1] = list;
+    char *tokenString = convertTokensToString(list);
+    
+    tokenHistory[ncmd - 1] = lex(tokenString);
 }
 
 void hClear (void) {
@@ -257,6 +310,16 @@ void hClear (void) {
 // // where ICMD is the number of the command and TOKEN0, ..., TOKENLAST are its
 // // tokens.
 //
+void printAllTokens (struct token *headToken) {
+    struct token *currentToken = headToken;
+    while (currentToken -> next) {
+        printf("%s ",currentToken -> text);
+        currentToken = currentToken -> next;
+    }
+    printf("%s",currentToken -> text);
+}
+
+
 void hDump (int n) {
     int startPos = currentPossition - n;
         while (startPos < currentPossition) {
@@ -268,13 +331,5 @@ void hDump (int n) {
         }
 }
 
-void printAllTokens (struct token *headToken) {
-    struct token *currentToken = headToken;
-    while (currentToken -> next) {
-        printf("%s ",currentToken -> text);
-        currentToken = currentToken -> next;
-    }
-    printf("%s",currentToken -> text);
-}
 
 
