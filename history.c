@@ -333,7 +333,7 @@ void hRemember (int ncmd, token *list) {
     char *tokenString = convertTokensToString(list);
     tokenHistory[currentPossition] = lex(tokenString);
     currentPossition ++;
-    currentCount = ncmd;
+    currentCount ++;
     
 }
 
@@ -375,15 +375,16 @@ void printAllTokens (struct token *headToken) {
 
 
 void hDump (int n) {
+    printf("currentCount : %d\n",currentCount);
     int startPos = currentPossition - n;
     int startCount = currentCount - n;
     if (startPos < 0) {
         startPos = 0;
-    }
-    if (startCount < 0) {
         startCount = currentCount - currentPossition;
     }
-    
+//    if (startCount > 0) {
+//        startCount = currentCount - currentPossition;
+//    }
     while (startPos < currentPossition) {
         printf("%6d  ", startCount + 1);
         struct token *tokenToPrint = tokenHistory[startPos];
