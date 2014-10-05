@@ -39,6 +39,7 @@
 
 struct token *tokenHistory[323];
 int currentPossition = 0;
+int currentCount = 0;
 
 char *combine(char *string1, char *string2) {
     int firstLength = strlen(string1);
@@ -329,24 +330,27 @@ char *hExpand (const char *oldLine, int *status) {
 //  // the first invocation and increases by one on every subsequent invocation).
 
 void hRemember (int ncmd, token *list) {
-    currentPossition ++;
     char *tokenString = convertTokensToString(list);
+    tokenHistory[currentPossition] = lex(tokenString);
+    currentPossition ++;
+    currentCount = ncmd;
     
-    tokenHistory[ncmd - 1] = lex(tokenString);
 }
 
 void freeTokenList (struct token *list) {
-    token *p, *pnext;
-    for (p = list;  p;  p = pnext)  {
-        pnext = p->next;
-        free(p->text);
-        free(p);
+    struct token *current = list;
+    struct token *nextHolder;
+    while (current)  {
+        nextHolder = current->next;
+        free(current->text);
+        free(current);
+        current = nextHolder;
     }
 }
 
 void hClear (void) {
     for (int i = 0; i < currentPossition; i++) {
-        freeList(tokenHistory[i]);
+        freeTokenList(tokenHistory[i]);
         tokenHistory[i] = NULL;
     }
     currentPossition = 0;
@@ -372,15 +376,21 @@ void printAllTokens (struct token *headToken) {
 
 void hDump (int n) {
     int startPos = currentPossition - n;
+    int startCount = currentCount - n;
     if (startPos < 0) {
-        startPos =0;
+        startPos = 0;
     }
+    if (startCount < 0) {
+        startCount = currentCount - currentPossition;
+    }
+    
     while (startPos < currentPossition) {
-        printf("%6d  ", startPos + 1);
+        printf("%6d  ", startCount + 1);
         struct token *tokenToPrint = tokenHistory[startPos];
         printAllTokens (tokenToPrint);
         printf("\n");
         startPos ++;
+        startCount ++;
     }
 }
 
