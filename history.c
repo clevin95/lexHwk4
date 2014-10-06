@@ -3,45 +3,13 @@
 #include <string.h>
 #include "./history.h"
 
-//  hExpand() returns a copy of the string OLDLINE in which any substring of
-//  //  the command line of the form !! or !N or !-N or !?STRING? as follows:
-//  //
-//  //    !!        -> last remembered command
-//  //
-//  //    !N        -> N-th command read (N is any sequence of digits)
-//  //
-//  //    !-N       -> N-th last remembered command (N is any sequence of digits)
-//  //
-//  //    !?STRING? -> most recent remembered command with a token that contains
-//  //                 STRING (= a nonempty sequence of characters that does not
-//  //                 contain whitespace or !  or ?)
-//  //
-//  //  The replacement string consists of the specified sequence of tokens
-//  //  separated by single blanks.
-//  //
-//  //  If the notation above is followed by a *, then the leading token in the
-//  //  command is omitted.  If it is followed by a ^, then only the first token is
-//  //  used.  If it is followed by a :M (where M is any sequence of digits), then
-//  //  only the M-th token is used.  If it is followed by a $, then only the last
-//  //  token is used.
-//  //
-//  //  The search for substrings to expand proceeds from left to right and
-//  //  continues after each replacement string.  If the requested substitution
-//  //  is impossible, then the substring is deleted, but the search continues.
-//  //  Storage for the new line is allocated by malloc()/realloc().  The string
-//  //  OLDLINE is not modified.
-//  //
-//  //  hExpand() sets STATUS to 1 if substitutions were made and all succeeded, to
-//  //  0 if no substitutions were requested, and to -1 if some substitution failed.
-//
-//
 
 //GlobalVariables
 struct token **tokenHistory = NULL;
 int currentPossition = 0;   //Next possition in history to be filled
 int historyTotal = 0;       //Total # of items added
 int currentCount = 0;       //Number of items since last clear
-int historySize = 10;
+int historySize = 323;
 
 
 //Creates a new string equal to string1 + string2
@@ -68,15 +36,6 @@ int getIndexHistoryPossition (int input){
         return -1;
     }
     return (relativePosition - 1) % historySize;
-    
-    /*
-    if (currentPossition + input < 0) {
-        return historySize + input;
-    }
-    else {
-        return currentPossition + input;
-    }
-     */
 }
 
 
@@ -85,16 +44,6 @@ char *stringCopy (char *string) {
     strcpy(copy, string);
     copy[strlen(string)] = '\0';
     return copy;
-}
-
-char *combineNoFree(char *string1, char *string2) {
-    int firstLength = strlen(string1);
-    int secondLength = strlen(string2);
-    char *result = malloc(firstLength + secondLength + 1);
-    strcpy(result, string1);
-    strcat(result, string2);
-    result[firstLength + secondLength] = '\0';
-    return result;
 }
 
 char *convertTokensToString (struct token *list) {
@@ -115,6 +64,8 @@ char *convertTokensToString (struct token *list) {
     return outputString;
 }
 
+//Creates a string out of all the texts in a token list
+//Excluding the first token
 char *convertAllButFirst (struct token *list) {
     struct token *current = list;
     char *outputString = malloc(1);
@@ -133,6 +84,7 @@ char *convertAllButFirst (struct token *list) {
     return outputString;
 }
 
+//Returns the text for the token at possition pos
 char *getTokenForPos (struct token *list, int pos) {
     int count = 0;
     struct token *current = list;
@@ -148,6 +100,7 @@ char *getTokenForPos (struct token *list, int pos) {
     return stringCopy(current -> text);
 }
 
+//Gets the last token of a list
 char *getLastToken (struct token *list) {
     struct token *current = list;
     while (current -> next) {
@@ -156,6 +109,7 @@ char *getLastToken (struct token *list) {
     return stringCopy(current -> text);
 }
 
+//Gets the length of an integer
 int getIntLength (int tokenNum) {
     int numLength = 0;
     while (tokenNum >= 1) {
@@ -165,12 +119,12 @@ int getIntLength (int tokenNum) {
     return numLength;
 }
 
+
+//Determines which token(s) from the list that should be in the replacement
 char *getTokenSequenceForList (struct token *list,
                                int *iPointer,
                                const char *oldLine,
                                int *replacementStatus) {
-    
-    
     if (oldLine[iPointer[0]] == '^'){
         iPointer[0] ++;
         return getTokenForPos (list, 1);
@@ -234,6 +188,8 @@ struct token *findStringInHistory (char *string) {
 }
 
 
+//Determines if a replacement designator has been passed in and
+//replases and locates the appropriate list
 char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus) {
     int lineLength = strlen(&oldLine[iPointer[0]]);
     char *endptr;
@@ -304,6 +260,7 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
             if (lineLength > iPointer[0]){
                 iPointer[0] ++;
             }
+            free(searchString);
             return getTokenSequenceForList (listToSearch,
                                             iPointer,
                                             oldLine,
@@ -317,13 +274,44 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
     return NULL;
 }
 
+//  hExpand() returns a copy of the string OLDLINE in which any substring of
+//  //  the command line of the form !! or !N or !-N or !?STRING? as follows:
+//  //
+//  //    !!        -> last remembered command
+//  //
+//  //    !N        -> N-th command read (N is any sequence of digits)
+//  //
+//  //    !-N       -> N-th last remembered command (N is any sequence of digits)
+//  //
+//  //    !?STRING? -> most recent remembered command with a token that contains
+//  //                 STRING (= a nonempty sequence of characters that does not
+//  //                 contain whitespace or !  or ?)
+//  //
+//  //  The replacement string consists of the specified sequence of tokens
+//  //  separated by single blanks.
+//  //
+//  //  If the notation above is followed by a *, then the leading token in the
+//  //  command is omitted.  If it is followed by a ^, then only the first token is
+//  //  used.  If it is followed by a :M (where M is any sequence of digits), then
+//  //  only the M-th token is used.  If it is followed by a $, then only the last
+//  //  token is used.
+//  //
+//  //  The search for substrings to expand proceeds from left to right and
+//  //  continues after each replacement string.  If the requested substitution
+//  //  is impossible, then the substring is deleted, but the search continues.
+//  //  Storage for the new line is allocated by malloc()/realloc().  The string
+//  //  OLDLINE is not modified.
+//  //
+//  //  hExpand() sets STATUS to 1 if substitutions were made and all succeeded, to
+//  //  0 if no substitutions were requested, and to -1 if some substitution failed.
+//
+//
 char *hExpand (const char *oldLine, int *status) {
     char *expanded = malloc(1);
     expanded[0] = '\0';
     int stringLength = strlen(oldLine);
     int statusTracker = 0;
     int iPointer[1];
-
     for (int i = 0; i < stringLength - 1; i++) {
         if (oldLine[i] == '!' && i + 1 < stringLength - 1){
             int replacementStatus[1];
@@ -365,13 +353,12 @@ char *hExpand (const char *oldLine, int *status) {
 }
 
 
-//
-//
-//  // hRemember() adds (a copy of) the command represented by the token list LIST
-//  // to the list of remembered commands as the NCMD-th command (where NCMD = 1 on
-//  // the first invocation and increases by one on every subsequent invocation).
-
+//Creates the array where tokens are storred
 void createTokenHistory (void) {
+    char *histString = getenv("HISTSIZE");
+    if (histString) {
+        historySize = atoi(histString);
+    }
     if (!tokenHistory) {
         tokenHistory = malloc(historySize * sizeof(struct token *));
         for (int i = 0; i < historySize; i ++) {
@@ -380,9 +367,15 @@ void createTokenHistory (void) {
     }
 }
 
+//  // hRemember() adds (a copy of) the command represented by the token list LIST
+//  // to the list of remembered commands as the NCMD-th command (where NCMD = 1 on
+//  // the first invocation and increases by one on every subsequent invocation).
 void hRemember (int ncmd, token *list) {
     createTokenHistory();
     char *tokenString = convertTokensToString(list);
+    if (tokenHistory[currentPossition]) {
+        freeList(tokenHistory[currentPossition]);
+    }
     tokenHistory[currentPossition] = lex(tokenString);
     free(tokenString);
     currentCount ++;
@@ -390,15 +383,30 @@ void hRemember (int ncmd, token *list) {
     currentPossition = currentCount % historySize;
 }
 
+//Clears all the tokens from history
 void hClear (void) {
-    for (int i = 0; i < currentPossition; i++) {
-        freeList(tokenHistory[i]);
-        tokenHistory[i] = NULL;
+    if (tokenHistory){
+        for (int i = 0; i < historySize; i++) {
+            if (tokenHistory[i]){
+                freeList(tokenHistory[i]);
+                tokenHistory[i] = NULL;
+            }
+        }
+        free(tokenHistory);
+        tokenHistory = NULL;
     }
-    free(tokenHistory);
-    tokenHistory = NULL;
     currentPossition = 0;
     currentCount = 0;
+}
+
+//Prints all tokens in a list
+void printAllTokens (struct token *headToken) {
+    struct token *currentToken = headToken;
+    while (currentToken -> next) {
+        printf("%s ",currentToken -> text);
+        currentToken = currentToken -> next;
+    }
+    printf("%s\n",currentToken -> text);
 }
 
 // hDump(n) writes the most recent N remembered commands by increasing number
@@ -408,15 +416,6 @@ void hClear (void) {
 // //
 // // where ICMD is the number of the command and TOKEN0, ..., TOKENLAST are its
 // // tokens.
-//
-void printAllTokens (struct token *headToken) {
-    struct token *currentToken = headToken;
-    while (currentToken -> next) {
-        printf("%s ",currentToken -> text);
-        currentToken = currentToken -> next;
-    }
-    printf("%s\n",currentToken -> text);
-}
 
 void hDump (int n) {
     int start = historyTotal - (n - 1);
