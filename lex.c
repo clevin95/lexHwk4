@@ -97,8 +97,10 @@ int getTokenLength (const char *line, int possition) {
 char *removeLineBreak (char *line) {
     int lineLength = strlen(line);
     if (line[lineLength - 1] == '\n') {
-        line[lineLength - 1] = 0;
+        line = realloc(line, lineLength);
+        line[lineLength - 1] = '\0';
     }
+    
     return line;
 }
 
@@ -153,24 +155,24 @@ token *lex (const char *line) {
 //}
 
 
-/*
-void freeList (token *list) {
-    struct token *currentToken = list;
-    while (currentToken -> next) {
-        free(currentToken -> text);
-        struct token *tokenHolder = currentToken;
-        currentToken = currentToken -> next;
-        free (tokenHolder);
-    }
-    free(currentToken);
-}
+
+//void freeList (struct token *list) {
+//    struct token *current = list;
+//    struct token *nextHolder;
+//    while (current)  {
+//        nextHolder = current->next;
+//        free(current->text);
+//        free(current);
+//        current = nextHolder;
+//    }
+//}
 
 
 
-int main(int argc, char **argv){
-    struct token *testToken;
-    testToken = lex (" this is a sentance");
-    printAllTokens (testToken);
-    return 1;
-}
- */
+//int main(int argc, char **argv){
+//    struct token *testToken;
+//    testToken = lex (" this is a sentance");
+//    printAllTokens (testToken);
+//    return 1;
+//}
+

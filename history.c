@@ -40,6 +40,7 @@
 struct token **tokenHistory = NULL;
 int currentPossition = 0;
 int currentCount = 0;
+int startIndex = 0;
 
 char *combine(char *string1, char *string2) {
     int firstLength = strlen(string1);
@@ -52,6 +53,15 @@ char *combine(char *string1, char *string2) {
     free(string2);
     return result;
 }
+
+
+/*
+void getIndex (int input){
+    if (input >= 0) {
+        
+    }
+}
+ */
 
 char *stringCopy (char *string) {
     char *copy = malloc (strlen(string) + 1);
@@ -198,7 +208,7 @@ int searchTokenList (char *string, struct token *list) {
 }
 
 struct token *findStringInHistory (char *string) {
-    for (int i = currentPossition; i >= 0; i --) {
+    for (int i = currentPossition - 1; i >= 0; i --) {
         if (searchTokenList(string, tokenHistory[i])){
             return tokenHistory[i];
         }
@@ -341,31 +351,29 @@ char *hExpand (const char *oldLine, int *status) {
 //  // to the list of remembered commands as the NCMD-th command (where NCMD = 1 on
 //  // the first invocation and increases by one on every subsequent invocation).
 
-void hRemember (int ncmd, token *list) {
+void createTokenHistory (void) {
     if (!tokenHistory) {
         tokenHistory = malloc(323 * sizeof(struct token *));
+        for (int i = 0; i < 323; i ++) {
+            tokenHistory[i] = NULL;
+        }
     }
+}
+
+
+void hRemember (int ncmd, token *list) {
+    createTokenHistory();
     char *tokenString = convertTokensToString(list);
     tokenHistory[currentPossition] = lex(tokenString);
+    free(tokenString);
     currentPossition ++;
     currentCount ++;
     
 }
 
-void freeTokenList (struct token *list) {
-    struct token *current = list;
-    struct token *nextHolder;
-    while (current)  {
-        nextHolder = current->next;
-        free(current->text);
-        free(current);
-        current = nextHolder;
-    }
-}
-
 void hClear (void) {
     for (int i = 0; i < currentPossition; i++) {
-        freeTokenList(tokenHistory[i]);
+        freeList(tokenHistory[i]);
         tokenHistory[i] = NULL;
     }
     free(tokenHistory);
