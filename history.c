@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "./history.h"
+#include "c/cs323/Hwk4/history.h"
 
 
 //GlobalVariables
@@ -37,7 +37,6 @@ int getIndexHistoryPossition (int input){
     }
     return (relativePosition - 1) % historySize;
 }
-
 
 char *stringCopy (char *string) {
     char *copy = malloc (strlen(string) + 1);
@@ -126,11 +125,9 @@ char *getTokenSequenceForList (struct token *list,
                                const char *oldLine,
                                int *replacementStatus) {
     if (oldLine[iPointer[0]] == '^'){
-        iPointer[0] ++;
         return getTokenForPos (list, 1);
     }
     else if (oldLine[iPointer[0]] == '$'){
-        iPointer[0] ++;
         return getLastToken (list);
     }
     else if (oldLine[iPointer[0]] == ':'){
@@ -140,27 +137,29 @@ char *getTokenSequenceForList (struct token *list,
                 int tokenNum = strtol (&oldLine[iPointer[0] + 1], &endptr, 10);
                 char *tokenReturned = getTokenForPos (list, tokenNum);
                 int numLength = getIntLength (tokenNum);
-                iPointer[0] += numLength + 1;
+                iPointer[0] += numLength;
                 return tokenReturned;
             }
         }
     }
     else if (oldLine[iPointer[0]] == '*'){
-        iPointer[0] ++;
         return convertAllButFirst (list);
     }
     iPointer[0] --;
     return convertTokensToString(list);
 }
 
+
+//Extracts the string from !?STRING?
 char *getString (const char *oldLine) {
     int length = strlen(oldLine);
     char *outputString = malloc(length);
     int i;
     for (i = 0; oldLine[i] != '?' ; i ++) {
-        if (!oldLine[i]) {
+        if (!oldLine[i] || oldLine[i] == '\n' || oldLine[i] == '!') {
             break;
         }
+
         outputString[i] = oldLine[i];
     }
     outputString[i] = '\0';
@@ -188,6 +187,34 @@ struct token *findStringInHistory (char *string) {
 }
 
 
+//Skips to the end of an escape sequence
+void skipToEnd (const char *oldLine, int *iPointer) {
+    char *characters = "^*$";
+    int foundChar = 0;
+    for (int i = 0; i < 4; i++) {
+        if(oldLine[iPointer[0] + 1] == characters[i]) {
+            foundChar = 1;
+        }
+    }
+    if (foundChar){
+        iPointer[0] ++;
+    }
+    else if (oldLine[iPointer[0] + 1] == ':' ){
+        if (strlen(&oldLine[iPointer[0]]) > 1) {
+            if (oldLine[iPointer[0] + 2] >= 48 && oldLine[iPointer[0] + 2] <= 57) {
+                char *endptr;
+                int tokenNum = strtol (&oldLine[iPointer[0] + 2], &endptr, 10);
+                int numLength = getIntLength (tokenNum);
+                iPointer[0] += numLength + 1;
+                return;
+            }
+        }
+    }
+    else {
+        return;
+    }
+}
+
 //Determines if a replacement designator has been passed in and
 //replases and locates the appropriate list
 char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus) {
@@ -197,29 +224,31 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
     int listNum;
     if (oldLine[iPointer[0]] == '!') {
         if (!tokenHistory){
+            if (oldLine[iPointer[0] + 1]) {
+                skipToEnd(oldLine, iPointer);
+            }
             return NULL;
         }
         iPointer[0] += 1;
-        if (currentPossition > 0) {
-            return getTokenSequenceForList (tokenHistory[currentPossition - 1],
-                                            iPointer, oldLine,
-                                            replacementStatus);
-        }
-        else {
-            return NULL;
-        }
+        return getTokenSequenceForList (tokenHistory[currentPossition - 1],
+                                        iPointer, oldLine,
+                                        replacementStatus);
+
         replacementStatus[0] = 1;
     }
     else if (oldLine[iPointer[0]] == '-'){
         if (lineLength > 1) {
             if (oldLine[iPointer[0] + 1] >= 48 && oldLine[iPointer[0] + 1] <= 57) {
-                if (!tokenHistory){
-                    return NULL;
-                }
                 listNum = strtol (&oldLine[iPointer[0] + 1], &endptr, 10);
                 int index = getIndexHistoryPossition (historyTotal + 1 - listNum);
                 int numLength = getIntLength (listNum);
                 iPointer[0] += numLength + 1;
+                if (!tokenHistory){
+                    if (oldLine[iPointer[0] + 1]) {
+                        skipToEnd(oldLine, iPointer);
+                    }
+                    return NULL;
+                }
                 if (index >= 0){
                     listToSearch = tokenHistory[index];
                     return getTokenSequenceForList (listToSearch,
@@ -232,13 +261,19 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
         replacementStatus[0] = 1;
     }
     else if (oldLine[iPointer[0]] >= 48 && oldLine[iPointer[0]] <= 57) {
-        if (!tokenHistory){
-            return NULL;
-        }
         listNum = strtol (&oldLine[iPointer[0]], &endptr, 10);
         int index = getIndexHistoryPossition(listNum);
         int numLength = getIntLength (listNum);
         iPointer[0] += numLength;
+        if (!tokenHistory){
+            if (oldLine[iPointer[0] + 1]) {
+                if (oldLine[iPointer[0] + 1] ==':') {
+                    iPointer[0] ++;
+                }
+                skipToEnd(oldLine, iPointer);
+            }
+            return NULL;
+        }
         if (index >= 0){
             listToSearch = tokenHistory[index];
             return getTokenSequenceForList (listToSearch,
@@ -250,15 +285,17 @@ char *getReplacement (int *iPointer, const char *oldLine, int *replacementStatus
     }
     else if (oldLine[iPointer[0]] == '?') {
         if (lineLength > 1) {
-            if (!tokenHistory){
-                return NULL;
-            }
             char *searchString = getString (&oldLine[iPointer[0] + 1]);
             listToSearch = findStringInHistory (searchString);
-            
             iPointer[0] += strlen(searchString) + 1;
-            if (lineLength > iPointer[0]){
+            if (oldLine[iPointer[0]] == '?'){
                 iPointer[0] ++;
+            }
+            if (!tokenHistory || !listToSearch){
+                if (oldLine[iPointer[0] + 1]) {
+                    skipToEnd(oldLine, iPointer);
+                }
+                return NULL;
             }
             free(searchString);
             return getTokenSequenceForList (listToSearch,
